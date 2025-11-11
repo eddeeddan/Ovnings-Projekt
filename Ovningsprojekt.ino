@@ -1,9 +1,10 @@
 /*
-* Name: övningsprojekt
-* Author: Victor Huke
+* Name: ovningsprojekt
+* Author: Edvin Andersson
 * Date: 2025-10-14
 * Description: This project uses a ds3231 to measure time and displays the time to an 1306 oled display, 
-* Further, it measures temprature with ds3231 and displays a mapped value to a 9g-servo-motor.
+* Further, it measures temprature with ds3231 and displays a mapped value to a 9g-servo-motor,
+* It also takes the time and maps it to a 24 pixel neopixel to simulate a analog clock
 */
 
 // Include Libraries
@@ -22,10 +23,10 @@ int ThermistorPin = 2;
 // Construct objects
 RTC_DS3231 rtc;
 U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_NO_ACK);
-Servo myservo;  // create Servo object to control a servo
+Servo myservo;
 
-#define PIN 6         // NeoPixel-data pin
-#define NUMPIXELS 24  // Antal pixlar (ändra till ditt antal)
+#define PIN 6
+#define NUMPIXELS 24 
 
 Adafruit_NeoPixel strip(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
@@ -36,14 +37,11 @@ void setup() {
   myservo.attach(5);
   u8g.setFont(u8g_font_helvB08);
 
-  // init communicati
   Serial.begin(9600);
   Wire.begin();
 
-  // Init Hardware
   rtc.begin();
 
-  // Settings
   rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
   strip.begin();
@@ -53,8 +51,8 @@ void loop() {
   DateTime now = rtc.now();
   float temp = rtc.getTemperature();
 
-  oledWrite(getTime(now), getDate(now));  //remove comment when the function is written
-  servoWrite(getTemp());                  //remove comment when the function is written
+  oledWrite(getTime(now), getDate(now));
+  servoWrite(getTemp());
   neopixel_clock(now);
 
   Serial.print(getTime(now));
@@ -93,11 +91,10 @@ String getDate(DateTime n) {
 }
 
 
-
 /*
 * This function takes temprature from ds3231 and returns as a float
 *Parameters: Void
-*Returns: temprature as float 
+*Returns: temperature mapped for the servo 
 */
 float getTemp() {
   return map(rtc.getTemperature(), 15, 30, 0, 180);
@@ -118,15 +115,20 @@ void oledWrite(String getTime, String getDate) {
 
 /*
 * takes a temprature value and maps it to corresppnding degree on a servo
-*Parameters: - value: temprature
+*Parameters: mapped temperature value
 *Returns: void
 */
 void servoWrite(float value) {
   myservo.write(value);
 }
 
+/*
+* takes the time in seconds, minute and hour and maps it to the correct pixel
+*Parameters: time
+*Returns: void
+*/
 void neopixel_clock(DateTime n) {
-  int pix_s = n.second() * 0.4;
+  float pix_s = n.second() * 0.4;
   int pix_m = n.minute() * 0.4;
   int pix_h = n.hour();
   if (pix_h > 12) {
@@ -134,7 +136,7 @@ void neopixel_clock(DateTime n) {
   }
   pix_h *= 2;
 
-  strip.clear();  // Släck alla pixlar
+  strip.clear();
   strip.setPixelColor(pix_s, strip.Color(255, 0, 0));
   strip.setPixelColor(pix_m, strip.Color(0, 255, 0));
   strip.setPixelColor(pix_h, strip.Color(0, 0, 255));
